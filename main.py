@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, Query, Form
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import HTTPException
@@ -18,11 +18,18 @@ async def home(request: Request):
 
 @app.get("/summary", response_class=HTMLResponse)
 async def summary(request: Request, url: str = Query(...)):
+    return templates.TemplateResponse("loading.html", {
+        "request": request,
+        "url": url
+    })
+
+
+@app.get("/api/summary")
+async def api_summary(url: str = Query(...)):
     try:
         content, source_type = fetch_content(url)
         summary = summarize_content(content, source_type)
-        return templates.TemplateResponse("result.html", {
-            "request": request,
+        return JSONResponse({
             "url": url,
             "summary": summary,
             "source_type": source_type

@@ -5,35 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Summarizer</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .loading-overlay {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
-        }
-        .progress-bar {
-            animation: progress 2s ease-in-out infinite;
-            background: linear-gradient(90deg, #3b82f6, #60a5fa, #3b82f6);
-            background-size: 200% 100%;
-        }
-        @keyframes progress {
-            0% { background-position: 100% 0; }
-            100% { background-position: -100% 0; }
-        }
-    </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-    <div id="loading" class="fixed inset-0 bg-white/90 flex items-center justify-center z-50 hidden">
-        <div class="text-center">
-            <div class="w-64 h-2 bg-gray-200 rounded-full overflow-hidden mb-4">
-                <div class="progress-bar h-full rounded-full"></div>
-            </div>
-            <p class="text-gray-700 text-lg font-medium loading-overlay">Generating summary...</p>
-            <p class="text-gray-500 text-sm mt-2">This may take a few moments</p>
-        </div>
-    </div>
     <div class="container mx-auto px-4 py-12 max-w-2xl">
         <div class="text-center mb-8">
             <h1 class="text-4xl font-bold text-gray-800 mb-2">Web Summarizer</h1>
@@ -77,13 +50,5 @@
             </p>
         </div>
     </div>
-    <script>
-        const form = document.querySelector('form');
-        const loading = document.getElementById('loading');
-        form.addEventListener('submit', function() {
-            document.title = 'Generating Summary';
-            loading.classList.remove('hidden');
-        });
-    </script>
 </body>
 </html>
