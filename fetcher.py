@@ -27,8 +27,8 @@ def fetch_youtube_transcript(url: str) -> Tuple[str, str]:
         raise ValueError("Could not extract YouTube video ID from URL")
     
     try:
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
-        transcript_text = " ".join([item['text'] for item in transcript])
+        transcript = YouTubeTranscriptApi().fetch(video_id)
+        transcript_text = " ".join([snippet.text for snippet in transcript.snippets])
         return transcript_text, "YouTube"
     except TranscriptsDisabled:
         raise ValueError("Transcripts are disabled for this video")
