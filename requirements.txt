@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-dotenv
+httpx
+youtube-transcript-api
+trafilatura
+openai
+jinja2
+python-multipart

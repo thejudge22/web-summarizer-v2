@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Summarizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-12 max-w-2xl">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">Web Summarizer</h1>
+            <p class="text-gray-600">Summarize any webpage or YouTube video using AI</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <form action="/summary" method="get" class="space-y-4">
+                <div>
+                    <label for="url" class="block text-sm font-medium text-gray-700 mb-2">URL to Summarize</label>
+                    <input 
+                        type="url" 
+                        id="url" 
+                        name="url" 
+                        required
+                        placeholder="https://example.com or https://youtube.com/watch?v=..."
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    >
+                </div>
+                <button 
+                    type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+                >
+                    Summarize
+                </button>
+            </form>
+        </div>
+        
+        <div class="bg-gray-100 rounded-lg p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Bookmarklet</h2>
+            <p class="text-gray-600 mb-4">Drag this link to your bookmarks bar for quick access:</p>
+            <a 
+                href="javascript:(function(){window.location.href='http://localhost:8000/summary?url='+encodeURIComponent(window.location.href);})()"
+                class="inline-block bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded transition duration-200"
+                onclick="event.preventDefault(); alert('Drag this link to your bookmarks bar!');"
+            >
+                📌 Summarize This Page
+            </a>
+            <p class="text-sm text-gray-500 mt-4">
+                <strong>Instructions:</strong> Right-click the link above and select "Bookmark this link" or drag it to your bookmarks bar. Then click it while on any page to summarize it.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
