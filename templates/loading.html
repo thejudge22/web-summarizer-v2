@@ -38,15 +38,53 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-    <div class="fixed inset-0 bg-white flex items-center justify-center z-50">
+    <div class="fixed inset-0 bg-white flex items-center justify-center z-50" id="loading-container">
         <div class="text-center max-w-md px-6">
             <div class="spinner"></div>
             <h2 class="text-2xl font-bold text-gray-800 mb-2 loading-overlay">Generating Summary</h2>
-            <p class="text-gray-600 mb-6">Please wait while we fetch and summarize the content...</p>
+            <p class="text-gray-600 mb-6" id="status-message">Please wait while we fetch and summarize the content...</p>
             <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div class="progress-bar h-full rounded-full"></div>
             </div>
             <p class="text-sm text-gray-500 mt-4" id="url-display">{{ url }}</p>
+        </div>
+    </div>
+    <div class="container mx-auto px-4 py-8 max-w-3xl hidden" id="result-container">
+        <div class="flex items-center justify-between mb-6">
+            <a href="/" class="text-blue-600 hover:text-blue-800 font-medium">
+                ← Back to Home
+            </a>
+            <span class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full" id="source-type-badge"></span>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h1 class="text-2xl font-bold text-gray-800 mb-4">Summary</h1>
+            <div class="text-gray-600 text-sm mb-4 break-all">
+                <strong>Source:</strong> <span id="source-url"></span>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+            <div id="summary-content" class="prose prose-lg max-w-none"></div>
+        </div>
+        
+        <div class="flex gap-4">
+            <form action="/download" method="post" class="flex-1">
+                <input type="hidden" name="summary" id="summary-input">
+                <button 
+                    type="submit"
+                    id="download-btn"
+                    class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+                >
+                    Download as Markdown
+                </button>
+            </form>
+            <a 
+                href="/"
+                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg text-center transition duration-200"
+            >
+                Summarize Another
+            </a>
         </div>
     </div>
     <div id="error-container" class="fixed inset-0 bg-white flex items-center justify-center z-50 hidden">
@@ -59,89 +97,91 @@
             </a>
         </div>
     </div>
-    <div id="result-container" class="hidden"></div>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         const url = "{{ url }}";
+        let fullSummary = '';
         
-        async function fetchSummary() {
-            try {
-                const response = await fetch(`/api/summary?url=${encodeURIComponent(url)}`);
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Failed to generate summary');
-                }
-                
-                const data = await response.json();
-                displayResult(data);
-            } catch (error) {
-                showError(error.message);
-            }
+        function updateStatus(message) {
+            document.getElementById('status-message').textContent = message;
         }
         
-        function displayResult(data) {
-            document.querySelector('.fixed').classList.add('hidden');
+        function showResult(sourceType, sourceUrl) {
+            document.getElementById('loading-container').classList.add('hidden');
             document.getElementById('result-container').classList.remove('hidden');
             document.title = 'Summary - Web Summarizer';
             
-            const resultContainer = document.getElementById('result-container');
-            resultContainer.innerHTML = `
-                <div class="container mx-auto px-4 py-8 max-w-3xl">
-                    <div class="flex items-center justify-between mb-6">
-                        <a href="/" class="text-blue-600 hover:text-blue-800 font-medium">
-                            ← Back to Home
-                        </a>
-                        <span class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
-                            ${data.source_type}
-                        </span>
-                    </div>
-                    
-                    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                        <h1 class="text-2xl font-bold text-gray-800 mb-4">Summary</h1>
-                        <div class="text-gray-600 text-sm mb-4 break-all">
-                            <strong>Source:</strong> ${data.url}
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-lg shadow-md p-8 mb-6">
-                        <div id="summary-content" class="prose prose-lg max-w-none"></div>
-                    </div>
-                    
-                    <div class="flex gap-4">
-                        <form action="/download" method="post" class="flex-1">
-                            <input type="hidden" name="summary" value='${JSON.stringify(data.summary).replace(/'/g, "&#39;")}'>
-                            <button 
-                                type="submit"
-                                class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
-                            >
-                                Download as Markdown
-                            </button>
-                        </form>
-                        <a 
-                            href="/"
-                            class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg text-center transition duration-200"
-                        >
-                            Summarize Another
-                        </a>
-                    </div>
-                </div>
-            `;
+            document.getElementById('source-type-badge').textContent = sourceType;
+            document.getElementById('source-url').textContent = sourceUrl;
+            document.getElementById('summary-input').value = fullSummary;
             
             if (typeof marked !== 'undefined') {
-                document.getElementById('summary-content').innerHTML = marked.parse(data.summary);
+                document.getElementById('summary-content').innerHTML = marked.parse(fullSummary);
             } else {
-                document.getElementById('summary-content').innerHTML = data.summary.replace(/\n/g, '<br>');
+                document.getElementById('summary-content').innerHTML = fullSummary.replace(/\\n/g, '<br>');
             }
         }
         
+        function updateSummaryDisplay() {
+            if (document.getElementById('result-container').classList.contains('hidden')) {
+                showResult('', url);
+            }
+            
+            if (typeof marked !== 'undefined') {
+                document.getElementById('summary-content').innerHTML = marked.parse(fullSummary);
+            } else {
+                document.getElementById('summary-content').innerHTML = fullSummary.replace(/\\n/g, '<br>');
+            }
+            
+            document.getElementById('source-type-badge').textContent = document.getElementById('source-type-badge').textContent || 'Loading...';
+            document.getElementById('source-url').textContent = url;
+            document.getElementById('summary-input').value = fullSummary;
+        }
+        
         function showError(message) {
-            document.querySelector('.fixed').classList.add('hidden');
+            document.getElementById('loading-container').classList.add('hidden');
             document.getElementById('error-container').classList.remove('hidden');
             document.getElementById('error-message').textContent = message;
         }
         
-        document.addEventListener('DOMContentLoaded', fetchSummary);
+        async function fetchSummaryStream() {
+            const eventSource = new EventSource(`/api/summary/stream?url=${encodeURIComponent(url)}`);
+            
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    switch(data.type) {
+                        case 'status':
+                            updateStatus(data.message);
+                            break;
+                            
+                        case 'content':
+                            fullSummary += data.chunk;
+                            updateSummaryDisplay();
+                            break;
+                            
+                        case 'done':
+                            showResult(data.source_type, data.url);
+                            break;
+                            
+                        case 'error':
+                            eventSource.close();
+                            showError(data.message);
+                            break;
+                    }
+                } catch (e) {
+                    console.error('Error parsing event data:', e);
+                }
+            };
+            
+            eventSource.onerror = function(error) {
+                eventSource.close();
+                console.error('EventSource error:', error);
+            };
+        }
+        
+        document.addEventListener('DOMContentLoaded', fetchSummaryStream);
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </body>
 </html>

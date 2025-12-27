@@ -35,3 +35,27 @@ def summarize_content(content: str, source_type: str) -> str:
     )
     
     return response.choices[0].message.content
+
+
+def summarize_content_stream(content: str, source_type: str):
+    api_key = os.getenv("OPENAI_API_KEY")
+    base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+    model = os.getenv("OPENAI_MODEL", "gpt-4o")
+    
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY not set in environment variables")
+    
+    client = OpenAI(api_key=api_key, base_url=base_url)
+    system_prompt = get_system_prompt(source_type)
+    
+    stream = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": content}
+        ],
+        temperature=0.7,
+        stream=True
+    )
+    
+    return stream
