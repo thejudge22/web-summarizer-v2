@@ -31,7 +31,7 @@ def summarize_content(content: str, source_type: str) -> str:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": content}
         ],
-        temperature=0.7
+        temperature=0.3
     )
     
     return response.choices[0].message.content
@@ -54,7 +54,7 @@ def summarize_content_stream(content: str, source_type: str):
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": content}
         ],
-        temperature=0.7,
+        temperature=0.3,
         stream=True
     )
     
