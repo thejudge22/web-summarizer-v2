@@ -78,7 +78,7 @@ For quick access on any page:
 ## Configuration
 
 ### Prompt Customization
-The prompt files are located in the project root.  You can customize the prompts (youtube.md and page-summary.md) as needed.  There is another file (page-summary-concise.md) with a more concise prompting that you could rename and use.  Make the changes to the prompts and rebuild the container.
+The prompt files are located in the project root.  You can customize the prompts (youtube.md and page-summary.md) as needed. Make the changes to the prompts and rebuild the container.
 
 ### Environment Variables
 
