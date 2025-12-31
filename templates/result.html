@@ -38,14 +38,20 @@
         <div class="flex gap-4">
             <form action="/download" method="post" class="flex-1">
                 <input type="hidden" name="summary" value="{{ summary }}">
-                <button 
+                <button
                     type="submit"
                     class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
                 >
                     Download as Markdown
                 </button>
             </form>
-            <a 
+            <a
+                href="/download/transcript?url={{ url }}"
+                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg text-center transition duration-200"
+            >
+                Download Transcript
+            </a>
+            <a
                 href="/"
                 class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg text-center transition duration-200"
             >

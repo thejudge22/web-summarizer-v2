@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, Streamin
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import HTTPException
+from fastapi.concurrency import run_in_threadpool
 import os
 import asyncio
 import json
@@ -83,12 +84,37 @@ async def download(summary: str = Form(...)):
     temp_file = "summary.md"
     with open(temp_file, "w") as f:
         f.write(summary)
-    
+
     return FileResponse(
         temp_file,
         media_type="text/markdown",
         filename="summary.md"
     )
+
+
+@app.get("/download/transcript")
+async def download_transcript(url: str):
+    content, _ = await run_in_threadpool(fetch_content, url)
+    return StreamingResponse(
+        iter([content]),
+        media_type="text/plain",
+        headers={"Content-Disposition": "attachment; filename=transcript.txt"}
+    )
+
+
+@app.get("/api/transcript")
+async def api_transcript(url: str = Query(...)):
+    try:
+        content, source_type = await run_in_threadpool(fetch_content, url)
+        return JSONResponse({
+            "url": url,
+            "transcript": content,
+            "source_type": source_type
+        })
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
 if __name__ == "__main__":

@@ -71,7 +71,7 @@
         <div class="flex gap-4">
             <form action="/download" method="post" class="flex-1">
                 <input type="hidden" name="summary" id="summary-input">
-                <button 
+                <button
                     type="submit"
                     id="download-btn"
                     class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
@@ -79,7 +79,14 @@
                     Download as Markdown
                 </button>
             </form>
-            <a 
+            <button
+                type="button"
+                id="download-transcript-btn"
+                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 hidden"
+            >
+                Download Transcript
+            </button>
+            <a
                 href="/"
                 class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg text-center transition duration-200"
             >
@@ -114,11 +121,12 @@
             document.getElementById('loading-container').classList.add('hidden');
             document.getElementById('result-container').classList.remove('hidden');
             document.title = 'Summary - Web Summarizer';
-            
+
             document.getElementById('source-type-badge').textContent = sourceType;
             document.getElementById('source-url').textContent = sourceUrl;
             document.getElementById('summary-input').value = fullSummary;
-            
+            document.getElementById('download-transcript-btn').classList.remove('hidden');
+
             if (typeof marked !== 'undefined') {
                 document.getElementById('summary-content').innerHTML = marked.parse(fullSummary);
             } else {
@@ -148,6 +156,23 @@
             document.getElementById('error-message').textContent = message;
         }
         
+        document.getElementById('download-transcript-btn').addEventListener('click', async function() {
+            try {
+                const response = await fetch(`/api/transcript?url=${encodeURIComponent(url)}`);
+                if (!response.ok) throw new Error('Failed to fetch transcript');
+                const data = await response.json();
+                const blob = new Blob([data.transcript], { type: 'text/plain' });
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = 'transcript.txt';
+                a.click();
+                URL.revokeObjectURL(blobUrl);
+            } catch (e) {
+                window.location.href = `/download/transcript?url=${encodeURIComponent(url)}`;
+            }
+        });
+
         async function fetchSummaryStream() {
             const eventSource = new EventSource(`/api/summary/stream?url=${encodeURIComponent(url)}`);
             
