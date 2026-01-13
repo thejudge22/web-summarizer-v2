@@ -21,6 +21,22 @@ def extract_video_id(url: str) -> Optional[str]:
     return None
 
 
+def clean_youtube_url(url: str) -> str:
+    """
+    Strips extra query parameters from a YouTube URL, returning a clean version
+    typically in the format https://www.youtube.com/watch?v={video_id}.
+    If it's not a YouTube URL or ID extraction fails, returns the original URL.
+    """
+    if not is_youtube_url(url):
+        return url
+    
+    video_id = extract_video_id(url)
+    if not video_id:
+        return url
+        
+    return f"https://www.youtube.com/watch?v={video_id}"
+
+
 def fetch_youtube_transcript(url: str) -> Tuple[str, str]:
     video_id = extract_video_id(url)
     if not video_id:

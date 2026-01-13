@@ -7,7 +7,7 @@ from fastapi.concurrency import run_in_threadpool
 import os
 import asyncio
 import json
-from fetcher import fetch_content
+from fetcher import fetch_content, clean_youtube_url
 from summarizer import summarize_content, summarize_content_stream
 
 app = FastAPI(title="Web Summarizer")
@@ -30,6 +30,7 @@ async def summary(request: Request, url: str = Query(...)):
 @app.get("/api/summary")
 async def api_summary(url: str = Query(...)):
     try:
+        url = clean_youtube_url(url)
         content, source_type = fetch_content(url)
         summary = summarize_content(content, source_type)
         return JSONResponse({
@@ -45,6 +46,7 @@ async def api_summary(url: str = Query(...)):
 
 async def summary_generator(url: str):
     try:
+        url = clean_youtube_url(url)
         yield f"data: {json.dumps({'type': 'status', 'message': 'Fetching content...'})}\n\n"
         
         content, source_type = fetch_content(url)
