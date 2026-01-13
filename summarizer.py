@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 
 load_dotenv()
 
@@ -58,4 +58,35 @@ def summarize_content_stream(content: str, source_type: str):
         stream=True
     )
     
+    return stream
+
+
+async def get_system_prompt_async(source_type: str) -> str:
+    # For simplicity, we'll use the sync version - file I/O is fast
+    # This can be improved with aiofiles if needed
+    return get_system_prompt(source_type)
+
+
+async def summarize_content_stream_async(content: str, source_type: str):
+    """Async version of summarize_content_stream using AsyncOpenAI"""
+    api_key = os.getenv("OPENAI_API_KEY")
+    base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+    model = os.getenv("OPENAI_MODEL", "gpt-4o")
+
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY not set in environment variables")
+
+    client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+    system_prompt = await get_system_prompt_async(source_type)
+
+    stream = await client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": content}
+        ],
+        temperature=0.3,
+        stream=True
+    )
+
     return stream

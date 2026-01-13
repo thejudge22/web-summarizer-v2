@@ -8,7 +8,7 @@ import os
 import asyncio
 import json
 from fetcher import fetch_content, clean_youtube_url
-from summarizer import summarize_content, summarize_content_stream
+from summarizer import summarize_content, summarize_content_stream, summarize_content_stream_async
 
 app = FastAPI(title="Web Summarizer")
 templates = Jinja2Templates(directory="templates")
@@ -31,8 +31,8 @@ async def summary(request: Request, url: str = Query(...)):
 async def api_summary(url: str = Query(...)):
     try:
         url = clean_youtube_url(url)
-        content, source_type = fetch_content(url)
-        summary = summarize_content(content, source_type)
+        content, source_type = await run_in_threadpool(fetch_content, url)
+        summary = await run_in_threadpool(summarize_content, content, source_type)
         return JSONResponse({
             "url": url,
             "summary": summary,
@@ -44,25 +44,37 @@ async def api_summary(url: str = Query(...)):
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-async def summary_generator(url: str):
+async def summary_generator(url: str, request: Request):
     try:
         url = clean_youtube_url(url)
         yield f"data: {json.dumps({'type': 'status', 'message': 'Fetching content...'})}\n\n"
-        
-        content, source_type = fetch_content(url)
-        
+
+        # Run blocking fetch in threadpool
+        content, source_type = await run_in_threadpool(fetch_content, url)
+
         yield f"data: {json.dumps({'type': 'status', 'message': 'Generating summary...'})}\n\n"
-        
-        stream = summarize_content_stream(content, source_type)
-        
-        for chunk in stream:
+
+        # Use async streaming
+        stream = await summarize_content_stream_async(content, source_type)
+
+        async for chunk in stream:
+            # Check if client is still connected
+            if await request.is_disconnected():
+                # Client disconnected, break the loop
+                break
+
             if chunk.choices[0].delta.content:
                 content_chunk = chunk.choices[0].delta.content
                 yield f"data: {json.dumps({'type': 'content', 'chunk': content_chunk})}\n\n"
-        
-        yield f"data: {json.dumps({'type': 'status', 'message': 'Complete'})}\n\n"
-        yield f"data: {json.dumps({'type': 'done', 'source_type': source_type, 'url': url})}\n\n"
-        
+
+        # Only send completion if not disconnected
+        if not await request.is_disconnected():
+            yield f"data: {json.dumps({'type': 'status', 'message': 'Complete'})}\n\n"
+            yield f"data: {json.dumps({'type': 'done', 'source_type': source_type, 'url': url})}\n\n"
+
+    except asyncio.CancelledError:
+        # Handle cancellation gracefully
+        pass
     except ValueError as e:
         yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
     except Exception as e:
@@ -70,9 +82,9 @@ async def summary_generator(url: str):
 
 
 @app.get("/api/summary/stream")
-async def api_summary_stream(url: str = Query(...)):
+async def api_summary_stream(request: Request, url: str = Query(...)):
     return StreamingResponse(
-        summary_generator(url),
+        summary_generator(url, request),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

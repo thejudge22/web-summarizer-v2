@@ -47,6 +47,12 @@
                 <div class="progress-bar h-full rounded-full"></div>
             </div>
             <p class="text-sm text-gray-500 mt-4" id="url-display">{{ url }}</p>
+            <button
+                id="stop-btn"
+                class="mt-6 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg transition duration-200 hidden"
+            >
+                Stop Generation
+            </button>
         </div>
     </div>
     <div class="container mx-auto px-4 py-8 max-w-3xl hidden" id="result-container">
@@ -104,6 +110,25 @@
             </a>
         </div>
     </div>
+    <div id="stopped-container" class="fixed inset-0 bg-white flex items-center justify-center z-50 hidden">
+        <div class="text-center max-w-md px-6">
+            <div class="text-yellow-600 text-6xl mb-4">⏹️</div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Generation Stopped</h2>
+            <p class="text-gray-600 mb-6">Summary generation was cancelled.</p>
+            <div id="partial-summary-container" class="hidden mb-6 text-left">
+                <p class="text-sm text-gray-500 mb-2">Partial summary received:</p>
+                <div id="partial-summary" class="bg-gray-100 p-4 rounded-lg text-sm max-h-40 overflow-y-auto"></div>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="location.reload()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg">
+                    Retry
+                </button>
+                <a href="/" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-6 rounded-lg text-center">
+                    Go Back
+                </a>
+            </div>
+        </div>
+    </div>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         marked.setOptions({
@@ -112,6 +137,8 @@
         
         const url = "{{ url }}";
         let fullSummary = '';
+        let eventSource = null;
+        let isStopped = false;
         
         function updateStatus(message) {
             document.getElementById('status-message').textContent = message;
@@ -155,6 +182,31 @@
             document.getElementById('error-container').classList.remove('hidden');
             document.getElementById('error-message').textContent = message;
         }
+
+        function showStoppedState() {
+            document.getElementById('loading-container').classList.add('hidden');
+            document.getElementById('stopped-container').classList.remove('hidden');
+
+            // Show partial summary if any content was received
+            if (fullSummary.length > 0) {
+                document.getElementById('partial-summary-container').classList.remove('hidden');
+                if (typeof marked !== 'undefined') {
+                    document.getElementById('partial-summary').innerHTML = marked.parse(fullSummary);
+                } else {
+                    document.getElementById('partial-summary').textContent = fullSummary;
+                }
+            }
+        }
+
+        // Stop button click handler
+        document.getElementById('stop-btn').addEventListener('click', function() {
+            if (eventSource) {
+                isStopped = true;
+                eventSource.close();
+                eventSource = null;
+                showStoppedState();
+            }
+        });
         
         document.getElementById('download-transcript-btn').addEventListener('click', async function() {
             try {
@@ -174,28 +226,36 @@
         });
 
         async function fetchSummaryStream() {
-            const eventSource = new EventSource(`/api/summary/stream?url=${encodeURIComponent(url)}`);
-            
+            eventSource = new EventSource(`/api/summary/stream?url=${encodeURIComponent(url)}`);
+
+            // Show stop button when streaming starts
+            document.getElementById('stop-btn').classList.remove('hidden');
+
             eventSource.onmessage = function(event) {
                 try {
                     const data = JSON.parse(event.data);
-                    
+
                     switch(data.type) {
                         case 'status':
                             updateStatus(data.message);
                             break;
-                            
+
                         case 'content':
                             fullSummary += data.chunk;
                             updateSummaryDisplay();
                             break;
-                            
+
                         case 'done':
+                            eventSource.close();
+                            eventSource = null;
+                            document.getElementById('stop-btn').classList.add('hidden');
                             showResult(data.source_type, data.url);
                             break;
-                            
+
                         case 'error':
                             eventSource.close();
+                            eventSource = null;
+                            document.getElementById('stop-btn').classList.add('hidden');
                             showError(data.message);
                             break;
                     }
@@ -203,10 +263,15 @@
                     console.error('Error parsing event data:', e);
                 }
             };
-            
+
             eventSource.onerror = function(error) {
                 eventSource.close();
-                console.error('EventSource error:', error);
+                eventSource = null;
+                document.getElementById('stop-btn').classList.add('hidden');
+
+                if (!isStopped) {
+                    console.error('EventSource error:', error);
+                }
             };
         }
         
