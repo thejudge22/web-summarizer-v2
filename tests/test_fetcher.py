@@ -43,3 +43,12 @@ class FetchYouTubeTranscriptTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "NanoGPT returned an invalid transcription response"):
             fetch_youtube_transcript("https://youtu.be/abc123")
+
+    @patch("fetcher.requests.post")
+    def test_uses_response_text_for_non_object_error_json(self, post):
+        response = Mock(status_code=400, ok=False, text="Invalid request")
+        response.json.return_value = []
+        post.return_value = response
+
+        with self.assertRaisesRegex(ValueError, "NanoGPT transcription request failed: Invalid request"):
+            fetch_youtube_transcript("https://youtu.be/abc123")
