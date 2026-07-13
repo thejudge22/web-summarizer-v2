@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import Mock, call, patch
 
-from fetcher import fetch_youtube_transcript
+from fetcher import StealthRetryAvailableError, fetch_webpage_content, fetch_youtube_transcript
 
 
 class FetchYouTubeTranscriptTests(unittest.TestCase):
@@ -29,6 +29,72 @@ class FetchYouTubeTranscriptTests(unittest.TestCase):
             headers={"Content-Type": "application/json", "x-api-key": "test-key"},
             timeout=30,
         )
+
+    @patch("fetcher.requests.post")
+    def test_returns_markdown_from_nanogpt_web_scrape(self, post):
+        response = Mock(status_code=200, ok=True)
+        response.json.return_value = {
+            "results": [{"success": True, "markdown": "# Article\n\nBody"}]
+        }
+        post.return_value = response
+
+        self.assertEqual(
+            fetch_webpage_content("https://example.com/article"),
+            ("# Article\n\nBody", "Webpage"),
+        )
+        post.assert_called_once_with(
+            "https://nano-gpt.com/api/scrape-urls",
+            json={"urls": ["https://example.com/article"], "stealthMode": False},
+            headers={"Content-Type": "application/json", "x-api-key": "test-key"},
+            timeout=30,
+        )
+
+    @patch("fetcher.time.sleep")
+    @patch("fetcher.requests.post")
+    def test_web_scrape_retries_rate_limit_after_five_then_ten_seconds(self, post, sleep):
+        limited = Mock(status_code=429)
+        success = Mock(status_code=200, ok=True)
+        success.json.return_value = {"results": [{"success": True, "markdown": "Recovered"}]}
+        post.side_effect = [limited, limited, success]
+
+        self.assertEqual(fetch_webpage_content("https://example.com"), ("Recovered", "Webpage"))
+        self.assertEqual(sleep.call_args_list, [call(5), call(10)])
+
+    @patch("fetcher.requests.post")
+    def test_normal_scrape_failure_offers_stealth_retry(self, post):
+        response = Mock(status_code=200, ok=True)
+        response.json.return_value = {"results": [{"success": False, "error": "Blocked"}]}
+        post.return_value = response
+
+        with self.assertRaisesRegex(StealthRetryAvailableError, "Blocked"):
+            fetch_webpage_content("https://example.com")
+
+    @patch("fetcher.requests.post")
+    def test_stealth_scrape_failure_is_terminal(self, post):
+        response = Mock(status_code=200, ok=True)
+        response.json.return_value = {"results": [{"success": False, "error": "Still blocked"}]}
+        post.return_value = response
+
+        with self.assertRaisesRegex(ValueError, "Still blocked"):
+            fetch_webpage_content("https://example.com", stealth_mode=True)
+
+    @patch("fetcher.requests.post")
+    def test_rejects_malformed_web_scrape_response(self, post):
+        response = Mock(status_code=200, ok=True)
+        response.json.return_value = {"results": []}
+        post.return_value = response
+
+        with self.assertRaisesRegex(ValueError, "invalid scraping response"):
+            fetch_webpage_content("https://example.com")
+
+    @patch("fetcher.requests.post")
+    def test_rejects_empty_scraped_markdown(self, post):
+        response = Mock(status_code=200, ok=True)
+        response.json.return_value = {"results": [{"success": True, "markdown": "  "}]}
+        post.return_value = response
+
+        with self.assertRaisesRegex(ValueError, "empty scraped content"):
+            fetch_webpage_content("https://example.com")
 
     def test_requires_openai_api_key(self):
         with patch.dict(os.environ, {}, clear=True):
