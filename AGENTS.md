@@ -32,6 +32,15 @@ streams the generated Markdown summary to a browser UI.
 4. The browser progressively renders Markdown and offers summary/transcript
    downloads when generation completes.
 
+### Streaming retry behavior
+
+- `/api/summary/stream` accepts an optional `stealth_mode=true` query parameter
+  for an explicit webpage retry. This mode calls the webpage scraper with its
+  stealth option, but YouTube URLs always continue through transcript routing.
+- A normal webpage scrape that can be retried with stealth emits
+  `{"type": "stealth_available", "message": "..."}` and ends the SSE stream.
+  Explicit stealth failures remain terminal `error` events.
+
 ## Configuration
 
 Copy `.env.example` to `.env` and set:
@@ -46,8 +55,9 @@ Run locally with `python3 main.py` after installing `requirements.txt`, or use
 
 ## Working conventions
 
-- Preserve the streaming API event format (`status`, `content`, `done`, and
-  `error`) unless the client and server are updated together.
+- Preserve the streaming API event format (`status`, `content`, `done`,
+  `stealth_available`, and `error`) unless the client and server are updated
+  together.
 - Keep source-type behavior aligned across URL handling, fetching, prompts, and
   the UI.
 - Do not commit `.env` or generated `summary.md` files.

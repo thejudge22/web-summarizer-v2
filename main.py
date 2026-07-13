@@ -12,6 +12,7 @@ from fetcher import (
     clean_youtube_url,
     fetch_content,
     fetch_webpage_content,
+    is_youtube_url,
 )
 from summarizer import summarize_content, summarize_content_stream, summarize_content_stream_async
 
@@ -56,7 +57,7 @@ async def summary_generator(url: str, request: Request, stealth_mode: bool = Fal
         yield f"data: {json.dumps({'type': 'status', 'message': 'Fetching content...'})}\n\n"
 
         # Run blocking fetch in threadpool
-        if stealth_mode:
+        if stealth_mode and not is_youtube_url(url):
             content, source_type = await run_in_threadpool(fetch_webpage_content, url, True)
         else:
             content, source_type = await run_in_threadpool(fetch_content, url)
