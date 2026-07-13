@@ -29,3 +29,8 @@ class FetchYouTubeTranscriptTests(unittest.TestCase):
             headers={"Content-Type": "application/json", "x-api-key": "test-key"},
             timeout=30,
         )
+
+    def test_requires_openai_api_key(self):
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(ValueError, "OPENAI_API_KEY not set"):
+                fetch_youtube_transcript("https://www.youtube.com/watch?v=abc123")

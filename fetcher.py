@@ -1,7 +1,15 @@
+import os
 import re
-from typing import Tuple, Optional
-from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
+import time
+from typing import Optional, Tuple
+
+import requests
 import trafilatura
+
+
+NANOGPT_YOUTUBE_TRANSCRIBE_URL = "https://nano-gpt.com/api/youtube-transcribe"
+NANOGPT_REQUEST_TIMEOUT_SECONDS = 30
+NANOGPT_RATE_LIMIT_DELAYS_SECONDS = (5, 10)
 
 
 def is_youtube_url(url: str) -> bool:
@@ -38,20 +46,44 @@ def clean_youtube_url(url: str) -> str:
 
 
 def fetch_youtube_transcript(url: str) -> Tuple[str, str]:
-    video_id = extract_video_id(url)
-    if not video_id:
+    if not extract_video_id(url):
         raise ValueError("Could not extract YouTube video ID from URL")
-    
-    try:
-        transcript = YouTubeTranscriptApi().fetch(video_id)
-        transcript_text = " ".join([snippet.text for snippet in transcript.snippets])
-        return transcript_text, "YouTube"
-    except TranscriptsDisabled:
-        raise ValueError("Transcripts are disabled for this video")
-    except NoTranscriptFound:
-        raise ValueError("No transcript found for this video")
-    except Exception as e:
-        raise ValueError(f"Error fetching transcript: {str(e)}")
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY not set in environment variables")
+
+    for attempt in range(3):
+        try:
+            response = requests.post(
+                NANOGPT_YOUTUBE_TRANSCRIBE_URL,
+                json={"urls": [clean_youtube_url(url)]},
+                headers={"Content-Type": "application/json", "x-api-key": api_key},
+                timeout=NANOGPT_REQUEST_TIMEOUT_SECONDS,
+            )
+        except requests.RequestException as error:
+            raise ValueError(f"Error contacting NanoGPT transcription service: {error}") from error
+        if response.status_code == 429:
+            if attempt == 2:
+                raise ValueError("NanoGPT transcription rate limit exceeded after 3 attempts")
+            time.sleep(NANOGPT_RATE_LIMIT_DELAYS_SECONDS[attempt])
+            continue
+        if not response.ok:
+            try:
+                message = response.json().get("error", response.text)
+            except ValueError:
+                message = response.text
+            raise ValueError(f"NanoGPT transcription request failed: {message}")
+        try:
+            result = response.json()["transcripts"][0]
+        except (KeyError, IndexError, TypeError, ValueError) as error:
+            raise ValueError("NanoGPT returned an invalid transcription response") from error
+        if not result.get("success"):
+            raise ValueError(result.get("error") or "No transcript found for this video")
+        transcript = result.get("transcript")
+        if not isinstance(transcript, str) or not transcript.strip():
+            raise ValueError("NanoGPT returned an empty transcript")
+        return transcript, "YouTube"
+    raise AssertionError("Unreachable retry state")
 
 
 def fetch_webpage_content(url: str) -> Tuple[str, str]:
