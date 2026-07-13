@@ -34,3 +34,12 @@ class FetchYouTubeTranscriptTests(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             with self.assertRaisesRegex(ValueError, "OPENAI_API_KEY not set"):
                 fetch_youtube_transcript("https://www.youtube.com/watch?v=abc123")
+
+    @patch("fetcher.requests.post")
+    def test_rejects_non_object_transcript_entry(self, post):
+        response = Mock(status_code=200, ok=True)
+        response.json.return_value = {"transcripts": [None]}
+        post.return_value = response
+
+        with self.assertRaisesRegex(ValueError, "NanoGPT returned an invalid transcription response"):
+            fetch_youtube_transcript("https://youtu.be/abc123")

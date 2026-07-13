@@ -77,6 +77,8 @@ def fetch_youtube_transcript(url: str) -> Tuple[str, str]:
             result = response.json()["transcripts"][0]
         except (KeyError, IndexError, TypeError, ValueError) as error:
             raise ValueError("NanoGPT returned an invalid transcription response") from error
+        if not isinstance(result, dict):
+            raise ValueError("NanoGPT returned an invalid transcription response")
         if not result.get("success"):
             raise ValueError(result.get("error") or "No transcript found for this video")
         transcript = result.get("transcript")
