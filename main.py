@@ -7,7 +7,12 @@ from fastapi.concurrency import run_in_threadpool
 import os
 import asyncio
 import json
-from fetcher import fetch_content, clean_youtube_url
+from fetcher import (
+    StealthRetryAvailableError,
+    clean_youtube_url,
+    fetch_content,
+    fetch_webpage_content,
+)
 from summarizer import summarize_content, summarize_content_stream, summarize_content_stream_async
 
 app = FastAPI(title="Web Summarizer")
@@ -45,13 +50,16 @@ async def api_summary(url: str = Query(...)):
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-async def summary_generator(url: str, request: Request):
+async def summary_generator(url: str, request: Request, stealth_mode: bool = False):
     try:
         url = clean_youtube_url(url)
         yield f"data: {json.dumps({'type': 'status', 'message': 'Fetching content...'})}\n\n"
 
         # Run blocking fetch in threadpool
-        content, source_type = await run_in_threadpool(fetch_content, url)
+        if stealth_mode:
+            content, source_type = await run_in_threadpool(fetch_webpage_content, url, True)
+        else:
+            content, source_type = await run_in_threadpool(fetch_content, url)
 
         yield f"data: {json.dumps({'type': 'status', 'message': 'Generating summary...'})}\n\n"
 
@@ -76,6 +84,9 @@ async def summary_generator(url: str, request: Request):
     except asyncio.CancelledError:
         # Handle cancellation gracefully
         pass
+    except StealthRetryAvailableError as e:
+        event_type = "error" if stealth_mode else "stealth_available"
+        yield f"data: {json.dumps({'type': event_type, 'message': str(e)})}\n\n"
     except ValueError as e:
         yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
     except Exception as e:
@@ -83,9 +94,13 @@ async def summary_generator(url: str, request: Request):
 
 
 @app.get("/api/summary/stream")
-async def api_summary_stream(request: Request, url: str = Query(...)):
+async def api_summary_stream(
+    request: Request,
+    url: str = Query(...),
+    stealth_mode: bool = Query(False),
+):
     return StreamingResponse(
-        summary_generator(url, request),
+        summary_generator(url, request, stealth_mode),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
