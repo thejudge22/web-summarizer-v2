@@ -16,15 +16,16 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html")
 
 
 @app.get("/summary", response_class=HTMLResponse)
 async def summary(request: Request, url: str = Query(...)):
-    return templates.TemplateResponse("loading.html", {
-        "request": request,
-        "url": url
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="loading.html",
+        context={"url": url},
+    )
 
 
 @app.get("/api/summary")

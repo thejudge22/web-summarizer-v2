@@ -69,4 +69,6 @@ documented in **either this file or `README.md`** in the same change set:
 
 At minimum, run `python3 -m py_compile main.py fetcher.py summarizer.py`.
 Run `python3 -m unittest tests.test_fetcher -v` after installing dependencies
-to verify the NanoGPT adapter without live API calls.
+to verify the NanoGPT adapter without live API calls. Run
+`python3 -m unittest tests.test_templates -v` to verify the template routes use
+the request-first Starlette API required by current container dependencies.
