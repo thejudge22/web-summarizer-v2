@@ -90,7 +90,7 @@ The prompt files are located in the project root.  You can customize the prompts
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key; also the NanoGPT API key for YouTube transcripts | Required |
+| `OPENAI_API_KEY` | OpenAI API key; also the NanoGPT API key for webpage scraping and YouTube transcripts | Required |
 | `OPENAI_BASE_URL` | OpenAI API base URL | `https://api.openai.com/v1` |
 | `OPENAI_MODEL` | OpenAI model to use | `gpt-4o` |
 
