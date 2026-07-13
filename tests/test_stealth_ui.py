@@ -12,3 +12,9 @@ class StealthRetryUiTests(unittest.TestCase):
     def test_stealth_button_starts_an_explicit_stealth_stream(self):
         self.assertIn("fetchSummaryStream(true)", self.template)
         self.assertIn("stealth_mode=${stealthMode}", self.template)
+
+    def test_initial_stream_starts_without_an_event_argument(self):
+        self.assertIn(
+            "document.addEventListener('DOMContentLoaded', () => fetchSummaryStream());",
+            self.template,
+        )
