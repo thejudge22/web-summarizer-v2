@@ -3,7 +3,6 @@ uvicorn
 python-dotenv
 httpx
 requests
-trafilatura
 openai
 jinja2
 python-multipart

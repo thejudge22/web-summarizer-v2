@@ -49,6 +49,8 @@ OPENAI_MODEL=gpt-4o
 for YouTube transcripts. YouTube transcripts are retrieved through NanoGPT's
 YouTube Transcription API; successful transcripts are billed by NanoGPT.
 
+Webpage summaries use NanoGPT's Web Scraping API. Standard successful scrapes cost $0.001 per URL. If a normal scrape fails, the app can offer an explicit stealth-mode retry; stealth mode costs 5× the standard scrape rate and is never enabled automatically.
+
 ### Running with Docker
 
 ```bash
