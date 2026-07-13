@@ -52,3 +52,41 @@ class FetchYouTubeTranscriptTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "NanoGPT transcription request failed: Invalid request"):
             fetch_youtube_transcript("https://youtu.be/abc123")
+
+    @patch("fetcher.requests.post")
+    def test_raises_provider_transcript_error(self, post):
+        response = Mock(status_code=200, ok=True)
+        response.json.return_value = {
+            "transcripts": [{"success": False, "error": "Captions unavailable"}]
+        }
+        post.return_value = response
+
+        with self.assertRaisesRegex(ValueError, "Captions unavailable"):
+            fetch_youtube_transcript("https://www.youtube.com/watch?v=abc123")
+
+    @patch("fetcher.time.sleep")
+    @patch("fetcher.requests.post")
+    def test_retries_429_after_five_then_ten_seconds(self, post, sleep):
+        limited = Mock(status_code=429)
+        successful = Mock(status_code=200, ok=True)
+        successful.json.return_value = {
+            "transcripts": [{"success": True, "transcript": "Recovered"}]
+        }
+        post.side_effect = [limited, limited, successful]
+
+        self.assertEqual(
+            fetch_youtube_transcript("https://www.youtube.com/watch?v=abc123"),
+            ("Recovered", "YouTube"),
+        )
+        self.assertEqual(sleep.call_args_list, [call(5), call(10)])
+
+    @patch("fetcher.time.sleep")
+    @patch("fetcher.requests.post")
+    def test_raises_after_third_429(self, post, sleep):
+        post.return_value = Mock(status_code=429)
+
+        with self.assertRaisesRegex(ValueError, "rate limit exceeded after 3 attempts"):
+            fetch_youtube_transcript("https://www.youtube.com/watch?v=abc123")
+
+        self.assertEqual(sleep.call_args_list, [call(5), call(10)])
+        self.assertEqual(post.call_count, 3)
