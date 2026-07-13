@@ -2,7 +2,7 @@ fastapi
 uvicorn
 python-dotenv
 httpx
-youtube-transcript-api
+requests
 trafilatura
 openai
 jinja2

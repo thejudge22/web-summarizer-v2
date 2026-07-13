@@ -45,6 +45,9 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_MODEL=gpt-4o
 ```
 
+`OPENAI_API_KEY` is also used as the NanoGPT API key for YouTube transcripts.
+YouTube transcripts are retrieved through NanoGPT's YouTube Transcription API using the existing OPENAI_API_KEY; successful transcripts are billed by NanoGPT.
+
 ### Running with Docker
 
 ```bash
@@ -84,7 +87,7 @@ The prompt files are located in the project root.  You can customize the prompts
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key | Required |
+| `OPENAI_API_KEY` | OpenAI API key; also the NanoGPT API key for YouTube transcripts | Required |
 | `OPENAI_BASE_URL` | OpenAI API base URL | `https://api.openai.com/v1` |
 | `OPENAI_MODEL` | OpenAI model to use | `gpt-4o` |
 
