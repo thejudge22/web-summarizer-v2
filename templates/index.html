@@ -1,54 +1,69 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Summarizer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="container mx-auto px-4 py-12 max-w-2xl">
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">Web Summarizer</h1>
-            <p class="text-gray-600">Summarize any webpage or YouTube video using AI</p>
-        </div>
-        
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <form action="/summary" method="get" class="space-y-4">
-                <div>
-                    <label for="url" class="block text-sm font-medium text-gray-700 mb-2">URL to Summarize</label>
-                    <input 
-                        type="url" 
-                        id="url" 
-                        name="url" 
-                        required
-                        placeholder="https://example.com or https://youtube.com/watch?v=..."
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                    >
-                </div>
-                <button 
-                    type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
-                >
-                    Summarize
-                </button>
-            </form>
-        </div>
-        
-<div class="bg-gray-100 rounded-lg p-6">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">Bookmarklet</h2>
-            <p class="text-gray-600 mb-4">Drag this link to your bookmarks bar for quick access:</p>
-            <a 
-                href='javascript:(function(){window.open("http://localhost:8000/summary?url="+encodeURIComponent(window.location.href),"_blank")})()'
-                class="inline-block bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded transition duration-200"
-                onclick="event.preventDefault(); alert('Drag this link to your bookmarks bar!');"
-            >
-                📌 Summarize This Page
-            </a>
-            <p class="text-sm text-gray-500 mt-4">
-                <strong>Instructions:</strong> Right-click the link above and select "Bookmark this link" or drag it to your bookmarks bar. Then click it while on any page to summarize it.
-            </p>
-        </div>
-    </div>
-</body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+<div id="home-view" class="container mx-auto max-w-2xl px-4 py-12">
+  <div class="mb-8 text-center">
+    <h1 class="mb-2 text-4xl font-bold text-gray-800">Web Summarizer</h1>
+    <p class="text-gray-600">Summarize any webpage or YouTube video using AI</p>
+  </div>
+  <div id="url-form-card" class="mb-8 rounded-lg bg-white p-6 shadow-md">
+    <form action="/summary" method="get" class="space-y-4">
+      <div>
+        <label for="url" class="mb-2 block text-sm font-medium text-gray-700">URL to Summarize</label>
+        <input type="url" id="url" name="url" required placeholder="https://example.com or https://youtube.com/watch?v=..." class="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none transition focus:border-transparent focus:ring-2 focus:ring-blue-500">
+      </div>
+      <button type="submit" class="w-full rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700">Summarize</button>
+    </form>
+  </div>
+  <div id="bookmarklet-card" class="rounded-lg bg-gray-100 p-6">
+    <h2 class="mb-4 text-xl font-semibold text-gray-800">Bookmarklet</h2>
+    <p class="mb-4 text-gray-600">Drag this link to your bookmarks bar for quick access:</p>
+    <a href='javascript:(function(){window.open("http://localhost:8000/summary?url="+encodeURIComponent(window.location.href),"_blank")})()' class="inline-block rounded bg-green-600 px-4 py-2 font-medium text-white transition hover:bg-green-700" onclick="event.preventDefault(); alert('Drag this link to your bookmarks bar!');">📌 Summarize This Page</a>
+    <p class="mt-4 text-sm text-gray-500"><strong>Instructions:</strong> Right-click the link above and select "Bookmark this link" or drag it to your bookmarks bar. Then click it while on any page to summarize it.</p>
+  </div>
+</div>
+<div id="saved-summary-view" class="container mx-auto hidden max-w-3xl px-4 py-8">
+  <div class="mb-6 flex items-center justify-between"><a href="/" class="font-medium text-blue-600 hover:text-blue-800">← Back to Home</a><button id="saved-actions" class="rounded border px-3 py-2 text-sm text-blue-700">Summary actions</button></div>
+  <div class="mb-6 rounded-lg bg-white p-6 shadow-md"><h1 id="saved-title" class="mb-4 text-2xl font-bold text-gray-800"></h1><div class="break-all text-sm text-gray-600"><strong>Source:</strong> <a id="saved-source-url" class="text-blue-700 underline"></a></div></div>
+  <div class="rounded-lg bg-white p-8 shadow-md"><div id="saved-summary-content" class="prose prose-lg max-w-none"></div></div>
+</div>
+<div id="saved-summary-error" class="container mx-auto hidden max-w-2xl px-4 py-12 text-center"><h1 class="text-2xl font-bold text-gray-800">Saved summary unavailable</h1><p id="saved-summary-error-message" class="mt-3 text-gray-600"></p><a href="/" class="mt-6 inline-block rounded bg-blue-600 px-4 py-2 text-white">Back to home</a></div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const savedSummaryId = document.body.dataset.summaryId;
+  const isSafeExternalUrl = (value) => /^https?:\/\//i.test(value);
+  const renderMarkdownSafely = (element, markdown) => {
+    if (typeof marked === "undefined") { element.textContent = markdown; return; }
+    const documentFragment = new DOMParser().parseFromString(marked.parse(markdown), "text/html");
+    documentFragment.querySelectorAll("script, style, iframe, object, embed, form").forEach((node) => node.remove());
+    documentFragment.querySelectorAll("*").forEach((node) => {
+      [...node.attributes].forEach((attribute) => {
+        if (attribute.name.startsWith("on") || (attribute.name === "href" && !/^(https?:|mailto:|#|\/)/i.test(attribute.value))) node.removeAttribute(attribute.name);
+      });
+    });
+    element.replaceChildren(...documentFragment.body.childNodes);
+  };
+  if (savedSummaryId) {
+    const home = document.getElementById("home-view");
+    const saved = document.getElementById("saved-summary-view");
+    const error = document.getElementById("saved-summary-error");
+    home.classList.add("hidden");
+    fetch(`/api/summaries/${encodeURIComponent(savedSummaryId)}`).then(async (response) => {
+      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail || "Saved summary not found");
+      return response.json();
+    }).then((summary) => {
+      document.title = `${summary.title} - Web Summarizer`;
+      document.getElementById("saved-title").textContent = summary.title;
+      const source = document.getElementById("saved-source-url");
+      source.textContent = summary.source_url;
+      if (isSafeExternalUrl(summary.source_url)) source.href = summary.source_url;
+      renderMarkdownSafely(document.getElementById("saved-summary-content"), summary.markdown);
+      document.getElementById("saved-actions").onclick = () => window.summaryHistory.openActions(summary.id);
+      saved.classList.remove("hidden");
+    }).catch((reason) => {
+      document.getElementById("saved-summary-error-message").textContent = reason.message;
+      error.classList.remove("hidden");
+    });
+  }
+</script>
+{% endblock %}

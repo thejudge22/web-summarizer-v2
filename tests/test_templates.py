@@ -15,7 +15,11 @@ class TemplateRouteTests(unittest.TestCase):
         response = asyncio.run(home(request))
 
         self.assertIs(response, expected_response)
-        template_response.assert_called_once_with(request=request, name="index.html")
+        template_response.assert_called_once_with(
+            request=request,
+            name="index.html",
+            context={"summary_id": None},
+        )
 
     @patch("main.templates.TemplateResponse")
     def test_summary_uses_request_first_template_response_signature(self, template_response):
@@ -29,7 +33,7 @@ class TemplateRouteTests(unittest.TestCase):
         template_response.assert_called_once_with(
             request=request,
             name="loading.html",
-            context={"url": "https://example.com"},
+            context={"url": "https://example.com", "summary_id": None},
         )
 
     @patch("main.templates.TemplateResponse")

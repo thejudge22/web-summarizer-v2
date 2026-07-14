@@ -1,0 +1,20 @@
+<aside id="history-sidebar" class="w-full border-b bg-white md:min-h-screen md:w-80 md:border-b-0 md:border-r">
+  <div class="flex items-center p-4">
+    <a href="/" class="flex-1 text-lg font-bold text-gray-800">Web Summarizer</a>
+    <button id="history-toggle" class="rounded px-3 py-2 text-gray-700 md:hidden" aria-label="Toggle history" aria-expanded="false">History</button>
+  </div>
+  <div id="history-content" class="hidden border-t md:block">
+    <div class="p-3">
+      <a href="/" class="block rounded bg-blue-600 px-3 py-2 text-center font-semibold text-white">New summary</a>
+      <button id="selection-mode-button" class="mt-2 w-full rounded border px-3 py-2 text-sm font-medium text-gray-700">Select summaries</button>
+      <div id="bulk-actions" class="mt-2 hidden rounded bg-gray-100 p-2 text-sm">
+        <span id="selected-count">0 selected</span>
+        <div class="mt-2 flex gap-2">
+          <button id="bulk-download" class="rounded bg-blue-600 px-2 py-1 text-white">Download ZIP</button>
+          <button id="bulk-delete" class="rounded bg-red-600 px-2 py-1 text-white">Delete selected</button>
+        </div>
+      </div>
+    </div>
+    <nav id="history-list" class="border-t" aria-label="Saved summaries"></nav>
+  </div>
+</aside>

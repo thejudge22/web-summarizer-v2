@@ -81,9 +81,15 @@ After a summary completes, the stream's final `done` event includes its saved
 saving fails; in that case the event has `summary_id: null` and a `save_error`
 message. Failed, cancelled, and disconnected streams are not saved.
 
-Saved summaries are available at `/summaries/{summary_id}` and through the
-history API. `GET /api/summaries` lists metadata, while `GET`, `PATCH`, and
-`DELETE /api/summaries/{summary_id}` retrieve, rename, or remove a record.
+Saved summaries appear in the responsive History sidebar on every home,
+summary, and bookmarklet view. Select a row to reopen it without generating a
+new summary. Use its Actions button to rename, download, or delete it (single
+deletes require confirmation). Selection mode enables ZIP downloads or a
+no-confirmation bulk delete for the selected rows.
+
+Saved summaries are also available at `/summaries/{summary_id}` and through
+the history API. `GET /api/summaries` lists metadata, while `GET`, `PATCH`,
+and `DELETE /api/summaries/{summary_id}` retrieve, rename, or remove a record.
 Use `GET /api/summaries/{summary_id}/download` to download Markdown, or send
 an `{"ids": [1, 2]}` JSON body to `POST /api/summaries/download-zip` or
 `POST /api/summaries/bulk-delete` for bulk exports or deletion.

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Web Summarizer{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body class="min-h-screen bg-gray-50" data-summary-id="{{ summary_id|default('', true) }}" data-source-url="{{ url|default('', true) }}">
+  <div class="min-h-screen md:flex">
+    {% include "history_sidebar.html" %}
+    <main id="main-panel" class="min-w-0 flex-1">{% block content %}{% endblock %}</main>
+  </div>
+  <script src="/static/history.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

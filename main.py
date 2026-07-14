@@ -35,13 +35,18 @@ from summarizer import (
 )
 
 app = FastAPI(title="Web Summarizer")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 initialize_database()
 
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"summary_id": None},
+    )
 
 
 @app.get("/summaries/{summary_id}", response_class=HTMLResponse)
@@ -58,7 +63,7 @@ async def summary(request: Request, url: str = Query(...)):
     return templates.TemplateResponse(
         request=request,
         name="loading.html",
-        context={"url": url},
+        context={"url": url, "summary_id": None},
     )
 
 
