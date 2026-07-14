@@ -12,6 +12,7 @@ A modern web application that uses AI to summarize webpages and YouTube videos. 
 - **Webpage Summarization**: Extract and summarize content from any webpage
 - **YouTube Video Summaries**: Get detailed summaries of YouTube video transcripts
 - **Real-time Streaming**: Watch the summary generate in real-time
+- **Completed Summary Saving**: Finished summaries are saved with an AI-generated title; a fallback title is used if title generation is unavailable
 - **Markdown Export**: Download summaries as Markdown files
 - **Bookmarklet**: Quick access bookmarklet for any page
 - **RESTful API**: Full API access for integration
@@ -73,6 +74,11 @@ python main.py
 1. Open `http://localhost:8000` in your browser
 2. Enter a URL (webpage or YouTube video)
 3. Click "Summarize" and watch the AI generate your summary
+
+After a summary completes, the stream's final `done` event includes its saved
+`summary_id` and `title`. A completed summary is still available to download if
+saving fails; in that case the event has `summary_id: null` and a `save_error`
+message. Failed, cancelled, and disconnected streams are not saved.
 
 ### Bookmarklet
 

@@ -32,7 +32,19 @@ UI.
 3. The server identifies YouTube URLs, fetches a transcript or scrapes
    non-YouTube webpages through NanoGPT, then streams the model response.
 4. The browser progressively renders Markdown and offers summary/transcript
-   downloads when generation completes.
+   downloads when generation completes. Only a fully completed, connected
+   stream generates a summary-derived title and saves the accumulated Markdown.
+   A title-generation failure uses `DEFAULT_TITLE_FALLBACK`; a storage failure
+   still finishes the stream with a usable download.
+
+### Completed-stream save metadata
+
+- The final `done` SSE event for a completed stream contains `summary_id` and
+  `title`.
+- A storage failure sets `summary_id` to `null` and adds `save_error`; it does
+  not turn an otherwise completed stream into an `error` event.
+- Failed, cancelled, stealth-retry, and disconnected attempts must not be
+  persisted. Recheck disconnect state after title generation and before storage.
 
 ### Streaming retry behavior
 
