@@ -21,3 +21,30 @@ class HistoryUiTests(unittest.TestCase):
         template = Path("templates/index.html").read_text()
 
         self.assertIn("isSafeExternalUrl", template)
+
+    def test_desktop_overlays_are_scoped_to_the_main_panel(self):
+        base = Path("templates/base.html").read_text()
+        loading = Path("templates/loading.html").read_text()
+
+        self.assertIn('id="main-panel" class="relative', base)
+        self.assertGreaterEqual(loading.count("md:absolute"), 4)
+        self.assertIn("showError(message)", loading)
+        self.assertIn("getElementById('error-container').classList.add('flex')", loading)
+
+    def test_markdown_uses_a_strict_dompurify_policy_for_hostile_markup(self):
+        base = Path("templates/base.html").read_text()
+        templates = [Path("templates/index.html").read_text(), Path("templates/loading.html").read_text()]
+        hostile_payloads = [
+            '<svg><script>alert(1)</script></svg>',
+            '<math><mi xlink:href="javascript:alert(1)">x</mi></math>',
+            '<a href="javascript:alert(1)">unsafe</a>',
+        ]
+
+        self.assertIn("dompurify", base.lower())
+        self.assertIn("FORBID_TAGS", base)
+        self.assertIn("svg", base)
+        self.assertIn("math", base)
+        self.assertIn("xlink", base)
+        for template in templates:
+            self.assertIn("DOMPurify.sanitize", template)
+        self.assertTrue(all("javascript:" in payload or "<svg" in payload or "<math" in payload for payload in hostile_payloads))

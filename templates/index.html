@@ -34,13 +34,8 @@
   const isSafeExternalUrl = (value) => /^https?:\/\//i.test(value);
   const renderMarkdownSafely = (element, markdown) => {
     if (typeof marked === "undefined") { element.textContent = markdown; return; }
-    const documentFragment = new DOMParser().parseFromString(marked.parse(markdown), "text/html");
-    documentFragment.querySelectorAll("script, style, iframe, object, embed, form").forEach((node) => node.remove());
-    documentFragment.querySelectorAll("*").forEach((node) => {
-      [...node.attributes].forEach((attribute) => {
-        if (attribute.name.startsWith("on") || (attribute.name === "href" && !/^(https?:|mailto:|#|\/)/i.test(attribute.value))) node.removeAttribute(attribute.name);
-      });
-    });
+    const safeHtml = DOMPurify.sanitize(marked.parse(markdown), window.STRICT_MARKDOWN_SANITIZE_CONFIG);
+    const documentFragment = new DOMParser().parseFromString(safeHtml, "text/html");
     element.replaceChildren(...documentFragment.body.childNodes);
   };
   if (savedSummaryId) {

@@ -87,6 +87,9 @@ new summary. Use its Actions button to rename, download, or delete it (single
 deletes require confirmation). Selection mode enables ZIP downloads or a
 no-confirmation bulk delete for the selected rows.
 
+Stored Markdown is rendered with a strict DOMPurify policy that excludes SVG,
+MathML, embedded content, styles, and unsafe link protocols.
+
 Saved summaries are also available at `/summaries/{summary_id}` and through
 the history API. `GET /api/summaries` lists metadata, while `GET`, `PATCH`,
 and `DELETE /api/summaries/{summary_id}` retrieve, rename, or remove a record.
