@@ -18,6 +18,9 @@ env
 !youtube.md
 !page-summary.md
 summary.md
+data/summaries.db
+data/summaries.db-shm
+data/summaries.db-wal
 .DS_Store
 .pytest_cache
 .coverage

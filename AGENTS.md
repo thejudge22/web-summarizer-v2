@@ -16,6 +16,7 @@ UI.
   API/URL cleanup.
 - `summarizer.py` — OpenAI and AsyncOpenAI client setup, prompt loading, and
   summary generation.
+- `storage.py` — SQLite-backed completed-summary storage and history helpers.
 - `templates/index.html` — URL-entry page and bookmarklet.
 - `templates/loading.html` — streaming summary UI, cancellation, Markdown
   rendering, and downloads.
@@ -24,6 +25,17 @@ UI.
 - `page-summary.md` and `youtube.md` — source-specific system prompts.
 - `requirements.txt`, `Dockerfile`, and `docker-compose.yml` — runtime and
   container configuration.
+
+## Summary persistence
+
+- Only completed streams persist. Failed, cancelled, stealth-retry, and
+  disconnected attempts are not saved.
+- The history sidebar appears on home and direct/bookmarklet summary pages;
+  saved rows reopen without generating a new summary and support rename,
+  download, delete, and selection-mode bulk actions.
+- In Docker, use `SUMMARY_DATA_DIR=/app/data` with the `./data:/app/data` bind
+  mount so the SQLite history remains durable across container rebuilds.
+- Do not commit the SQLite database or its sidecar files.
 
 ## Runtime behavior
 
@@ -95,10 +107,10 @@ documented in **either this file or `README.md`** in the same change set:
 
 ## Verification baseline
 
-At minimum, run `python3 -m py_compile main.py fetcher.py summarizer.py`.
+At minimum, run `python3 -m py_compile main.py fetcher.py summarizer.py storage.py`.
 Run `python3 -m unittest tests.test_fetcher -v` after installing dependencies
 to verify the NanoGPT adapter without live API calls. Run
 `python3 -m unittest tests.test_templates -v` to verify the template routes use
 the request-first Starlette API required by current container dependencies.
 Before committing a complete change, run
-`python3 -m unittest discover -s tests -v && python3 -m py_compile main.py fetcher.py summarizer.py && git diff --check`.
+`python3 -m unittest discover -s tests -v && python3 -m py_compile main.py fetcher.py summarizer.py storage.py && git diff --check`.

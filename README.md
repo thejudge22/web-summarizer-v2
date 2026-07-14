@@ -61,6 +61,16 @@ docker-compose up --build
 
 The application will be available at `http://localhost:8000`
 
+For a deployment-style container without the source-code development mount,
+use the included example:
+
+```bash
+docker compose -f docker-compose-example.yml up --build
+```
+
+Both compose configurations bind-mount `./data` to `/app/data` and set
+`SUMMARY_DATA_DIR=/app/data`, so saved history survives container rebuilds.
+
 ### Running Locally
 
 ```bash
@@ -96,6 +106,17 @@ and `DELETE /api/summaries/{summary_id}` retrieve, rename, or remove a record.
 Use `GET /api/summaries/{summary_id}/download` to download Markdown, or send
 an `{"ids": [1, 2]}` JSON body to `POST /api/summaries/download-zip` or
 `POST /api/summaries/bulk-delete` for bulk exports or deletion.
+
+### Saved Summary History
+
+Only fully completed summaries are saved. They appear in the sidebar and can
+be reopened without calling the model again. Each saved row can be renamed,
+downloaded, or deleted. Selection mode can create a ZIP download or delete
+the selected records.
+
+History is stored locally in `data/summaries.db`. Back up the `data/`
+directory to preserve saved history; do not commit its SQLite database or its
+sidecar files.
 
 ### Bookmarklet
 
