@@ -52,11 +52,22 @@
       const meta = setText(document.createElement("small"), `${item.source_host || hostFor(item.source_url)} · ${relativeTime(item.created_at)}`);
       meta.className = "block truncate text-gray-500";
       link.append(title, meta);
-      const actions = setText(document.createElement("button"), "Actions");
-      actions.type = "button";
-      actions.className = "history-actions rounded px-2 py-1 text-sm text-blue-700";
-      actions.dataset.id = String(item.id);
-      actions.setAttribute("aria-label", `Actions for ${item.title}`);
+      const actions = document.createElement("details");
+      actions.className = "history-action-menu relative";
+      const summary = setText(document.createElement("summary"), "Actions");
+      summary.className = "cursor-pointer rounded px-2 py-1 text-sm text-blue-700";
+      summary.setAttribute("aria-label", `Actions for ${item.title}`);
+      const menu = document.createElement("div");
+      menu.className = "absolute right-0 z-10 mt-1 w-44 rounded border bg-white p-1 shadow-lg";
+      [["rename", "Rename"], ["download", "Download Markdown"], ["delete", "Delete"]].forEach(([action, label]) => {
+        const button = setText(document.createElement("button"), label);
+        button.type = "button";
+        button.className = `history-action block w-full rounded px-3 py-2 text-left text-sm ${action === "delete" ? "text-red-700" : "text-gray-700"}`;
+        button.dataset.action = action;
+        button.dataset.id = String(item.id);
+        menu.append(button);
+      });
+      actions.append(summary, menu);
       row.append(checkbox, link, actions);
       list.append(row);
     });
@@ -65,9 +76,7 @@
     state.summaries = (await (await request("/api/summaries")).json()).summaries;
     render();
   };
-  const actionFor = async (id) => {
-    const action = window.prompt("Type rename, download, or delete");
-    if (!action) return;
+  const performAction = async (id, action) => {
     if (action === "rename") {
       const title = window.prompt("New title");
       if (!title) return;
@@ -105,8 +114,8 @@
     render();
   };
   list.onclick = async (event) => {
-    if (!event.target.matches(".history-actions")) return;
-    try { await actionFor(Number(event.target.dataset.id)); } catch (error) { window.alert(error.message); }
+    if (!event.target.matches(".history-action")) return;
+    try { await performAction(Number(event.target.dataset.id), event.target.dataset.action); } catch (error) { window.alert(error.message); }
   };
   window.summaryHistory = {
     refresh,
@@ -120,7 +129,7 @@
       state.selected.delete(id);
       render();
     },
-    openActions: actionFor,
+    openActions: performAction,
   };
   refresh().catch((error) => {
     list.replaceChildren(setText(document.createElement("p"), error.message));

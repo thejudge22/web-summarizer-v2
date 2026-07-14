@@ -19,7 +19,7 @@
 <body class="min-h-screen bg-gray-50" data-summary-id="{{ summary_id|default('', true) }}" data-source-url="{{ url|default('', true) }}">
   <div class="min-h-screen md:flex">
     {% include "history_sidebar.html" %}
-    <main id="main-panel" class="relative min-w-0 flex-1">{% block content %}{% endblock %}</main>
+    <main id="main-panel" class="relative min-h-screen min-w-0 flex-1">{% block content %}{% endblock %}</main>
   </div>
   <script src="/static/history.js"></script>
   {% block scripts %}{% endblock %}

@@ -93,8 +93,8 @@ message. Failed, cancelled, and disconnected streams are not saved.
 
 Saved summaries appear in the responsive History sidebar on every home,
 summary, and bookmarklet view. Select a row to reopen it without generating a
-new summary. Use its Actions button to rename, download, or delete it (single
-deletes require confirmation). Selection mode enables ZIP downloads or a
+new summary. Open its Actions menu to rename, download Markdown, or delete it
+(single deletes require confirmation). Selection mode enables ZIP downloads or a
 no-confirmation bulk delete for the selected rows.
 
 Stored Markdown is rendered with a strict DOMPurify policy that excludes SVG,

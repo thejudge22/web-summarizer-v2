@@ -17,6 +17,23 @@ class HistoryUiTests(unittest.TestCase):
         self.assertIn("download-zip", script)
         self.assertIn("confirm(", script)
 
+    def test_history_actions_use_visible_named_controls_instead_of_action_prompt(self):
+        script = Path("static/history.js").read_text()
+
+        self.assertIn("history-action-menu", script)
+        self.assertIn('"Rename"', script)
+        self.assertIn('"Download Markdown"', script)
+        self.assertIn('"Delete"', script)
+        self.assertNotIn('Type rename, download, or delete', script)
+
+    def test_loading_overlays_leave_the_mobile_history_sidebar_reachable(self):
+        base = Path("templates/base.html").read_text()
+        loading = Path("templates/loading.html").read_text()
+
+        self.assertIn('id="main-panel" class="relative min-h-screen', base)
+        self.assertGreaterEqual(loading.count('class="absolute inset-0 z-50'), 4)
+        self.assertNotIn('class="fixed inset-0 z-50', loading)
+
     def test_saved_summary_url_is_protocol_checked_before_linking(self):
         template = Path("templates/index.html").read_text()
 
@@ -27,7 +44,7 @@ class HistoryUiTests(unittest.TestCase):
         loading = Path("templates/loading.html").read_text()
 
         self.assertIn('id="main-panel" class="relative', base)
-        self.assertGreaterEqual(loading.count("md:absolute"), 4)
+        self.assertGreaterEqual(loading.count("absolute inset-0 z-50"), 4)
         self.assertIn("showError(message)", loading)
         self.assertIn("getElementById('error-container').classList.add('flex')", loading)
 
