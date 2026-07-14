@@ -97,6 +97,9 @@ new summary. Open its Actions menu to rename, download Markdown, or delete it
 (single deletes require confirmation). Selection mode enables ZIP downloads or a
 no-confirmation bulk delete for the selected rows.
 
+The completed-summary download actions use equal responsive columns, so their
+labels remain aligned as the available width changes.
+
 Stored Markdown is rendered with a strict DOMPurify policy that excludes SVG,
 MathML, embedded content, styles, and unsafe link protocols.
 

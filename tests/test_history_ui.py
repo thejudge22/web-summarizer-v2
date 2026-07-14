@@ -56,6 +56,12 @@ class HistoryUiTests(unittest.TestCase):
         self.assertIn("showError(message)", loading)
         self.assertIn("getElementById('error-container').classList.add('flex')", loading)
 
+    def test_result_download_actions_use_equal_responsive_grid_columns(self):
+        template = Path("templates/loading.html").read_text()
+
+        self.assertIn('id="result-actions" class="grid grid-cols-1 gap-4 sm:grid-cols-3"', template)
+        self.assertIn('action="/download" method="post" class="min-w-0"', template)
+
     def test_markdown_uses_a_strict_dompurify_policy_for_hostile_markup(self):
         base = Path("templates/base.html").read_text()
         templates = [Path("templates/index.html").read_text(), Path("templates/loading.html").read_text()]
