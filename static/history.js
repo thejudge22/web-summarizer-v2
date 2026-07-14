@@ -24,6 +24,25 @@
     URL.revokeObjectURL(objectUrl);
   };
   const setText = (element, value) => { element.textContent = String(value || ""); return element; };
+  const actionMenuFor = (id, title) => {
+    const actions = document.createElement("details");
+    actions.className = "history-action-menu relative";
+    const summary = setText(document.createElement("summary"), "Actions");
+    summary.className = "cursor-pointer rounded px-2 py-1 text-sm text-blue-700";
+    summary.setAttribute("aria-label", `Actions for ${title}`);
+    const menu = document.createElement("div");
+    menu.className = "absolute right-0 z-10 mt-1 w-44 rounded border bg-white p-1 shadow-lg";
+    [["rename", "Rename"], ["download", "Download Markdown"], ["delete", "Delete"]].forEach(([action, label]) => {
+      const button = setText(document.createElement("button"), label);
+      button.type = "button";
+      button.className = `history-action block w-full rounded px-3 py-2 text-left text-sm ${action === "delete" ? "text-red-700" : "text-gray-700"}`;
+      button.dataset.action = action;
+      button.dataset.id = String(id);
+      menu.append(button);
+    });
+    actions.append(summary, menu);
+    return actions;
+  };
   const render = () => {
     document.getElementById("selected-count").textContent = `${state.selected.size} selected`;
     document.getElementById("bulk-actions").classList.toggle("hidden", !state.selecting || state.selected.size === 0);
@@ -52,22 +71,7 @@
       const meta = setText(document.createElement("small"), `${item.source_host || hostFor(item.source_url)} · ${relativeTime(item.created_at)}`);
       meta.className = "block truncate text-gray-500";
       link.append(title, meta);
-      const actions = document.createElement("details");
-      actions.className = "history-action-menu relative";
-      const summary = setText(document.createElement("summary"), "Actions");
-      summary.className = "cursor-pointer rounded px-2 py-1 text-sm text-blue-700";
-      summary.setAttribute("aria-label", `Actions for ${item.title}`);
-      const menu = document.createElement("div");
-      menu.className = "absolute right-0 z-10 mt-1 w-44 rounded border bg-white p-1 shadow-lg";
-      [["rename", "Rename"], ["download", "Download Markdown"], ["delete", "Delete"]].forEach(([action, label]) => {
-        const button = setText(document.createElement("button"), label);
-        button.type = "button";
-        button.className = `history-action block w-full rounded px-3 py-2 text-left text-sm ${action === "delete" ? "text-red-700" : "text-gray-700"}`;
-        button.dataset.action = action;
-        button.dataset.id = String(item.id);
-        menu.append(button);
-      });
-      actions.append(summary, menu);
+      const actions = actionMenuFor(item.id, item.title);
       row.append(checkbox, link, actions);
       list.append(row);
     });
@@ -113,10 +117,10 @@
     event.target.checked ? state.selected.add(id) : state.selected.delete(id);
     render();
   };
-  list.onclick = async (event) => {
+  document.addEventListener("click", async (event) => {
     if (!event.target.matches(".history-action")) return;
     try { await performAction(Number(event.target.dataset.id), event.target.dataset.action); } catch (error) { window.alert(error.message); }
-  };
+  });
   window.summaryHistory = {
     refresh,
     prepend(summary) {
@@ -129,7 +133,10 @@
       state.selected.delete(id);
       render();
     },
-    openActions: performAction,
+    openActions(id, container) {
+      const item = state.summaries.find((summary) => summary.id === id);
+      container.replaceChildren(actionMenuFor(id, item?.title || "saved summary"));
+    },
   };
   refresh().catch((error) => {
     list.replaceChildren(setText(document.createElement("p"), error.message));

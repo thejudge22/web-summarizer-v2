@@ -26,6 +26,14 @@ class HistoryUiTests(unittest.TestCase):
         self.assertIn('"Delete"', script)
         self.assertNotIn('Type rename, download, or delete', script)
 
+    def test_saved_summary_actions_open_the_shared_named_action_menu(self):
+        template = Path("templates/index.html").read_text()
+        script = Path("static/history.js").read_text()
+
+        self.assertIn('id="saved-actions"', template)
+        self.assertIn('openActions(summary.id, document.getElementById("saved-actions"))', template)
+        self.assertIn("openActions(id, container)", script)
+
     def test_loading_overlays_leave_the_mobile_history_sidebar_reachable(self):
         base = Path("templates/base.html").read_text()
         loading = Path("templates/loading.html").read_text()

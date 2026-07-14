@@ -22,7 +22,7 @@
   </div>
 </div>
 <div id="saved-summary-view" class="container mx-auto hidden max-w-3xl px-4 py-8">
-  <div class="mb-6 flex items-center justify-between"><a href="/" class="font-medium text-blue-600 hover:text-blue-800">← Back to Home</a><button id="saved-actions" class="rounded border px-3 py-2 text-sm text-blue-700">Summary actions</button></div>
+  <div class="mb-6 flex items-center justify-between"><a href="/" class="font-medium text-blue-600 hover:text-blue-800">← Back to Home</a><div id="saved-actions"></div></div>
   <div class="mb-6 rounded-lg bg-white p-6 shadow-md"><h1 id="saved-title" class="mb-4 text-2xl font-bold text-gray-800"></h1><div class="break-all text-sm text-gray-600"><strong>Source:</strong> <a id="saved-source-url" class="text-blue-700 underline"></a></div></div>
   <div class="rounded-lg bg-white p-8 shadow-md"><div id="saved-summary-content" class="prose prose-lg max-w-none"></div></div>
 </div>
@@ -53,7 +53,7 @@
       source.textContent = summary.source_url;
       if (isSafeExternalUrl(summary.source_url)) source.href = summary.source_url;
       renderMarkdownSafely(document.getElementById("saved-summary-content"), summary.markdown);
-      document.getElementById("saved-actions").onclick = () => window.summaryHistory.openActions(summary.id);
+      window.summaryHistory.openActions(summary.id, document.getElementById("saved-actions"));
       saved.classList.remove("hidden");
     }).catch((reason) => {
       document.getElementById("saved-summary-error-message").textContent = reason.message;
