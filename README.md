@@ -13,6 +13,7 @@ A modern web application that uses AI to summarize webpages and YouTube videos. 
 - **YouTube Video Summaries**: Get detailed summaries of YouTube video transcripts
 - **Real-time Streaming**: Watch the summary generate in real-time
 - **Completed Summary Saving**: Finished summaries are saved with an AI-generated title; a fallback title is used if title generation is unavailable
+- **Summary History API**: List, rename, delete, and export saved summaries individually or as a ZIP archive
 - **Markdown Export**: Download summaries as Markdown files
 - **Bookmarklet**: Quick access bookmarklet for any page
 - **RESTful API**: Full API access for integration
@@ -79,6 +80,13 @@ After a summary completes, the stream's final `done` event includes its saved
 `summary_id` and `title`. A completed summary is still available to download if
 saving fails; in that case the event has `summary_id: null` and a `save_error`
 message. Failed, cancelled, and disconnected streams are not saved.
+
+Saved summaries are available at `/summaries/{summary_id}` and through the
+history API. `GET /api/summaries` lists metadata, while `GET`, `PATCH`, and
+`DELETE /api/summaries/{summary_id}` retrieve, rename, or remove a record.
+Use `GET /api/summaries/{summary_id}/download` to download Markdown, or send
+an `{"ids": [1, 2]}` JSON body to `POST /api/summaries/download-zip` or
+`POST /api/summaries/bulk-delete` for bulk exports or deletion.
 
 ### Bookmarklet
 

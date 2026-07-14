@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Request, Query, Form
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, StreamingResponse
+from fastapi import Body, FastAPI, Request, Query, Form
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import HTTPException
@@ -14,7 +14,19 @@ from fetcher import (
     fetch_webpage_content,
     is_youtube_url,
 )
-from storage import DEFAULT_TITLE_FALLBACK, create_summary, initialize_database
+from storage import (
+    DEFAULT_TITLE_FALLBACK,
+    build_summaries_zip,
+    bulk_delete_summaries,
+    create_summary,
+    delete_summary,
+    get_summary,
+    initialize_database,
+    list_summaries,
+    markdown_filename,
+    rename_summary,
+    validate_summary_ids,
+)
 from summarizer import (
     generate_summary_title,
     summarize_content,
@@ -30,6 +42,15 @@ initialize_database()
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse(request=request, name="index.html")
+
+
+@app.get("/summaries/{summary_id}", response_class=HTMLResponse)
+async def saved_summary(request: Request, summary_id: int):
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"summary_id": summary_id},
+    )
 
 
 @app.get("/summary", response_class=HTMLResponse)
@@ -142,6 +163,77 @@ async def api_summary_stream(
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
         }
+    )
+
+
+@app.get("/api/summaries")
+async def api_list_summaries():
+    return {"summaries": await run_in_threadpool(list_summaries)}
+
+
+@app.post("/api/summaries/bulk-delete")
+async def api_bulk_delete_summaries(payload: dict = Body(...)):
+    try:
+        summary_ids = await run_in_threadpool(validate_summary_ids, payload.get("ids"))
+        return await run_in_threadpool(bulk_delete_summaries, summary_ids)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.post("/api/summaries/download-zip")
+async def api_download_zip(payload: dict = Body(...)):
+    try:
+        summary_ids = await run_in_threadpool(validate_summary_ids, payload.get("ids"))
+        archive = await run_in_threadpool(build_summaries_zip, summary_ids)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    return Response(
+        archive,
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="web-summaries.zip"'},
+    )
+
+
+@app.get("/api/summaries/{summary_id}")
+async def api_get_summary(summary_id: int):
+    record = await run_in_threadpool(get_summary, summary_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Summary not found")
+    return record
+
+
+@app.patch("/api/summaries/{summary_id}")
+async def api_rename_summary(summary_id: int, payload: dict = Body(...)):
+    try:
+        record = await run_in_threadpool(rename_summary, summary_id, payload.get("title"))
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    if not record:
+        raise HTTPException(status_code=404, detail="Summary not found")
+    return record
+
+
+@app.delete("/api/summaries/{summary_id}")
+async def api_delete_summary(summary_id: int):
+    if not await run_in_threadpool(delete_summary, summary_id):
+        raise HTTPException(status_code=404, detail="Summary not found")
+    return {"deleted_ids": [summary_id]}
+
+
+@app.get("/api/summaries/{summary_id}/download")
+async def api_download_summary(summary_id: int):
+    record = await run_in_threadpool(get_summary, summary_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Summary not found")
+    filename = await run_in_threadpool(markdown_filename, record["title"], summary_id)
+    return Response(
+        record["markdown"],
+        media_type="text/markdown",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
