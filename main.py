@@ -14,10 +14,17 @@ from fetcher import (
     fetch_webpage_content,
     is_youtube_url,
 )
-from summarizer import summarize_content, summarize_content_stream, summarize_content_stream_async
+from storage import DEFAULT_TITLE_FALLBACK, create_summary, initialize_database
+from summarizer import (
+    generate_summary_title,
+    summarize_content,
+    summarize_content_stream,
+    summarize_content_stream_async,
+)
 
 app = FastAPI(title="Web Summarizer")
 templates = Jinja2Templates(directory="templates")
+initialize_database()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -67,6 +74,7 @@ async def summary_generator(url: str, request: Request, stealth_mode: bool = Fal
         # Use async streaming
         stream = await summarize_content_stream_async(content, source_type)
 
+        full_summary = ""
         async for chunk in stream:
             # Check if client is still connected
             if await request.is_disconnected():
@@ -75,12 +83,39 @@ async def summary_generator(url: str, request: Request, stealth_mode: bool = Fal
 
             if chunk.choices[0].delta.content:
                 content_chunk = chunk.choices[0].delta.content
+                full_summary += content_chunk
                 yield f"data: {json.dumps({'type': 'content', 'chunk': content_chunk})}\n\n"
 
         # Only send completion if not disconnected
         if not await request.is_disconnected():
+            yield f"data: {json.dumps({'type': 'status', 'message': 'Saving summary...'})}\n\n"
+            title = DEFAULT_TITLE_FALLBACK
+            try:
+                title = await generate_summary_title(full_summary)
+            except Exception:
+                pass
+
+            if await request.is_disconnected():
+                return
+
+            try:
+                saved = await run_in_threadpool(create_summary, title, url, source_type, full_summary)
+                saved_id, save_error = saved["id"], None
+            except Exception:
+                saved_id = None
+                save_error = "The completed summary could not be saved. You can still download it now."
+
             yield f"data: {json.dumps({'type': 'status', 'message': 'Complete'})}\n\n"
-            yield f"data: {json.dumps({'type': 'done', 'source_type': source_type, 'url': url})}\n\n"
+            done = {
+                "type": "done",
+                "source_type": source_type,
+                "url": url,
+                "summary_id": saved_id,
+                "title": title,
+            }
+            if save_error:
+                done["save_error"] = save_error
+            yield f"data: {json.dumps(done)}\n\n"
 
     except asyncio.CancelledError:
         # Handle cancellation gracefully

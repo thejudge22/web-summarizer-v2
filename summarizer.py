@@ -90,3 +90,34 @@ async def summarize_content_stream_async(content: str, source_type: str):
     )
 
     return stream
+
+
+async def generate_summary_title(summary_markdown: str) -> str:
+    """Generate a concise title for a completed Markdown summary."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY not set in environment variables")
+
+    client = AsyncOpenAI(
+        api_key=api_key,
+        base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+    )
+    response = await client.chat.completions.create(
+        model=os.getenv("OPENAI_MODEL", "gpt-4o"),
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Return only a concise summary title. Use five to seven words. "
+                    "Start with one relevant emoji only when warranted. Do not use quotes, "
+                    "Markdown, or explanation."
+                ),
+            },
+            {"role": "user", "content": summary_markdown},
+        ],
+        temperature=0.2,
+    )
+    title = (response.choices[0].message.content or "").strip()
+    if not title:
+        raise ValueError("Title model returned an empty title")
+    return title
