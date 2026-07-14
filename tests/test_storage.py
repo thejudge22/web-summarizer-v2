@@ -58,6 +58,23 @@ class SummaryStorageTests(unittest.TestCase):
             self.assertEqual(len(archive.namelist()), 2)
         self.assertEqual(bulk_delete_summaries([first["id"], second["id"]], self.path)["deleted_ids"], [first["id"], second["id"]])
 
+    def test_bulk_delete_rolls_back_when_not_every_selected_record_is_deleted(self):
+        first = create_summary("First", "https://first.example", "Webpage", "# First", self.path)
+        second = create_summary("Second", "https://second.example", "Webpage", "# Second", self.path)
+        with _connect(self.path) as connection:
+            connection.execute(
+                f"CREATE TRIGGER remove_second_selected_summary "
+                f"BEFORE DELETE ON summaries "
+                f"WHEN OLD.id = {first['id']} "
+                f"BEGIN DELETE FROM summaries WHERE id = {second['id']}; END"
+            )
+
+        with self.assertRaises(LookupError):
+            bulk_delete_summaries([first["id"], second["id"]], self.path)
+
+        self.assertIsNotNone(get_summary(first["id"], self.path))
+        self.assertIsNotNone(get_summary(second["id"], self.path))
+
     def test_database_connection_is_closed_after_use(self):
         with _connect(self.path) as connection:
             connection.execute("SELECT 1")

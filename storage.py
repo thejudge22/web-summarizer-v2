@@ -130,10 +130,16 @@ def _selected_summaries(summary_ids, database_path=None):
 
 
 def bulk_delete_summaries(summary_ids, database_path=None):
-    records = _selected_summaries(summary_ids, database_path)
-    ids = [record["id"] for record in records]
     with _connect(database_path) as connection:
-        connection.execute(f"DELETE FROM summaries WHERE id IN ({', '.join('?' for _ in ids)})", ids)
+        ids = validate_summary_ids(summary_ids)
+        placeholders = ", ".join("?" for _ in ids)
+        connection.execute("BEGIN IMMEDIATE")
+        rows = connection.execute(f"SELECT * FROM summaries WHERE id IN ({placeholders})", ids).fetchall()
+        if len(rows) != len(ids):
+            raise LookupError("One or more selected summaries no longer exist")
+        deleted_count = connection.execute(f"DELETE FROM summaries WHERE id IN ({placeholders})", ids).rowcount
+        if deleted_count != len(ids):
+            raise LookupError("One or more selected summaries no longer exist")
     return {"deleted_ids": ids}
 
 
