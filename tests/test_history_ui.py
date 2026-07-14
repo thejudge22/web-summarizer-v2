@@ -17,6 +17,14 @@ class HistoryUiTests(unittest.TestCase):
         self.assertIn("download-zip", script)
         self.assertIn("confirm(", script)
 
+    def test_selection_mode_exposes_a_select_all_clear_toggle(self):
+        sidebar = Path("templates/history_sidebar.html").read_text()
+        script = Path("static/history.js").read_text()
+
+        self.assertIn('id="select-all-button"', sidebar)
+        self.assertIn('"Clear selection"', script)
+        self.assertIn('state.summaries.map((summary) => summary.id)', script)
+
     def test_history_actions_use_visible_named_controls_instead_of_action_prompt(self):
         script = Path("static/history.js").read_text()
 

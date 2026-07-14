@@ -24,6 +24,8 @@
     URL.revokeObjectURL(objectUrl);
   };
   const setText = (element, value) => { element.textContent = String(value || ""); return element; };
+  const listedIds = () => state.summaries.map((summary) => summary.id);
+  const allListedSelected = () => listedIds().length > 0 && listedIds().every((id) => state.selected.has(id));
   const actionMenuFor = (id, title) => {
     const actions = document.createElement("details");
     actions.className = "history-action-menu relative";
@@ -44,9 +46,21 @@
     return actions;
   };
   const render = () => {
+    const selectAllButton = document.getElementById("select-all-button");
     document.getElementById("selected-count").textContent = `${state.selected.size} selected`;
     document.getElementById("bulk-actions").classList.toggle("hidden", !state.selecting || state.selected.size === 0);
     document.getElementById("selection-mode-button").textContent = state.selecting ? "Cancel selection" : "Select summaries";
+    selectAllButton.classList.toggle("hidden", !state.selecting || state.summaries.length === 0);
+    selectAllButton.textContent = allListedSelected() ? "Clear selection" : "Select all";
+    selectAllButton.onclick = () => {
+      if (allListedSelected()) {
+        state.selected.clear();
+      } else {
+        state.selected.clear();
+        listedIds().forEach((id) => state.selected.add(id));
+      }
+      render();
+    };
     list.replaceChildren();
     if (!state.summaries.length) {
       list.append(setText(document.createElement("p"), "No saved summaries yet."));
