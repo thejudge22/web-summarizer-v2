@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 import unittest
 
 
@@ -24,6 +25,101 @@ class HistoryUiTests(unittest.TestCase):
         self.assertIn('id="select-all-button"', sidebar)
         self.assertIn('"Clear selection"', script)
         self.assertIn('state.summaries.map((summary) => summary.id)', script)
+
+    def test_select_all_and_clear_update_the_rendered_history_selection(self):
+        runner = r'''
+;(async () => {
+const assert = require("node:assert/strict");
+const source = require("fs").readFileSync("static/history.js", "utf8");
+
+class Element {
+  constructor() {
+    this.children = [];
+    this.className = "";
+    this.textContent = "";
+    this.dataset = {};
+    this.hidden = false;
+    this.classList = {
+      values: new Set(),
+      toggle: (name, force) => {
+        const enabled = force === undefined ? !this.classList.values.has(name) : force;
+        this.classList.values[enabled ? "add" : "delete"](name);
+        return enabled;
+      },
+      contains: (name) => this.classList.values.has(name),
+    };
+  }
+  append(...children) { this.children.push(...children); }
+  appendChild(child) { this.append(child); return child; }
+  replaceChildren(...children) { this.children = children; }
+  remove() {}
+  click() { this.onclick?.({ target: this }); }
+  setAttribute() {}
+  matches(selector) { return selector === ".history-select" && this.className.includes("history-select"); }
+}
+
+const elements = new Map();
+const document = {
+  body: new Element(),
+  getElementById: (id) => elements.get(id),
+  createElement: () => new Element(),
+  addEventListener() {},
+};
+["history-list", "history-content", "selected-count", "bulk-actions", "selection-mode-button", "select-all-button", "history-toggle", "bulk-download", "bulk-delete"].forEach((id) => elements.set(id, new Element()));
+
+const summaries = [
+  { id: 7, title: "First", source_url: "https://example.com/first", created_at: "2026-07-14T00:00:00Z" },
+  { id: 13, title: "Second", source_url: "https://example.com/second", created_at: "2026-07-14T00:00:00Z" },
+];
+let downloadedIds;
+global.document = document;
+global.window = { alert() {}, confirm: () => true, prompt: () => null };
+global.URL = { createObjectURL: () => "blob:summary", revokeObjectURL() {} };
+global.fetch = async (path, options = {}) => {
+  if (path === "/api/summaries") return { ok: true, json: async () => ({ summaries }) };
+  if (path === "/api/summaries/download-zip") {
+    downloadedIds = JSON.parse(options.body).ids;
+    return { ok: true, blob: async () => ({}) };
+  }
+  throw new Error(`Unexpected request: ${path}`);
+};
+
+eval(source);
+await new Promise((resolve) => setImmediate(resolve));
+elements.get("selection-mode-button").click();
+const selectAll = elements.get("select-all-button");
+const bulkActions = elements.get("bulk-actions");
+assert.equal(selectAll.textContent, "Select all");
+assert.equal(bulkActions.classList.contains("hidden"), true);
+
+selectAll.click();
+assert.equal(selectAll.textContent, "Clear selection");
+assert.equal(elements.get("selected-count").textContent, "2 selected");
+assert.equal(bulkActions.classList.contains("hidden"), false);
+assert.deepEqual(elements.get("history-list").children.map((row) => row.children[0].checked), [true, true]);
+await elements.get("bulk-download").onclick();
+assert.deepEqual(downloadedIds, [7, 13]);
+
+selectAll.click();
+assert.equal(selectAll.textContent, "Select all");
+assert.equal(elements.get("selected-count").textContent, "0 selected");
+assert.equal(bulkActions.classList.contains("hidden"), true);
+assert.deepEqual(elements.get("history-list").children.map((row) => row.children[0].checked), [false, false]);
+await elements.get("bulk-download").onclick();
+assert.deepEqual(downloadedIds, []);
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+'''
+        result = subprocess.run(
+            ["node", "--eval", runner],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_history_actions_use_visible_named_controls_instead_of_action_prompt(self):
         script = Path("static/history.js").read_text()
